@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import FastAPI, Body
+from fastapi import FastAPI, Body, Path, HTTPException
 from pydantic import BaseModel, Field
 
 app: FastAPI = FastAPI(title="Notes API", version="0.1.0")
@@ -44,3 +44,14 @@ def create_note(
     notes.append(new_note)
     next_id += 1
     return new_note
+
+
+@app.get(path="/notes/{note_id}", status_code=200)
+def get_note(
+        note_id: Annotated[int, Path(description="Id of the note")]
+) -> dict[str, str | int]:
+    for note in notes:
+        if note["id"] == note_id:
+            return note
+
+    raise HTTPException(status_code=404, detail="Note not found")
