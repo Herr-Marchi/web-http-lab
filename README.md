@@ -4,7 +4,7 @@ A small FastAPI Notes API. Notes are stored in PostgreSQL and survive an API res
 
 ## Requirements
 
-Python 3.14 or newer and access to PostgreSQL. Docker is needed only if you use the local database example below.
+Python 3.14 or newer and access to PostgreSQL. Docker is needed for the container examples below.
 
 ## Setup and run
 
@@ -63,6 +63,16 @@ uvicorn main:app --reload
 ```
 
 The API runs at `http://127.0.0.1:8000`. Interactive documentation is at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs).
+
+## Run API and PostgreSQL with Docker Compose
+
+```bash
+docker compose up -d --build
+docker compose exec api alembic upgrade head
+curl http://127.0.0.1:8000/health
+```
+
+Compose starts the API and PostgreSQL together. The database uses a named volume, so its data survives container recreation.
 
 ## Schema
 
@@ -148,6 +158,6 @@ The API has no authentication or ownership checks. Clients supply `user_id` when
 
 The layers are not fully separated yet: route handlers use SQLAlchemy sessions and ORM models directly, apply business rules such as checking that a user exists before creating a note, and commit transactions.
 
-The API and database are currently configured and started separately, and local setup varies by operating system. Containerizing the API and running it with a local PostgreSQL instance through Docker Compose would make local startup consistent across systems.
+When running with Compose, database migrations still need to be applied separately. Running without Compose requires configuring and starting the API and PostgreSQL separately.
 
 Project requirements are currently split between this README, which specifies the Python version, and `requirements.txt`, which lists third-party packages. A `pyproject.toml` could declare the supported Python version and package dependencies together.
