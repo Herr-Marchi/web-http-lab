@@ -27,7 +27,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run tests
-        run: pytest
+        run: PYTHONPATH=. pytest
 
   # только проверка что билд проходит, собранный образ пропадет после того как отработает ci
   build:
