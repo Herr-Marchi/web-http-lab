@@ -13,9 +13,28 @@ env:
 
 # делаю две отдельные джобы, одну на тесты вторую на билд
 jobs:
-  # не подымаю постгрес тут, пока что тест только тех ендпоинтов что не зависят от базы
   test:
     runs-on: ubuntu-latest
+
+    # все таки решил поднять тестовую базу, сделал github secrets для ci
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: "postgresql+psycopg://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/${{ secrets.POSTGRES_DB }}"
+
     steps:
       - uses: actions/checkout@v4
 
@@ -25,6 +44,9 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r requirements.txt
+
+      - name: Run Alembic migrations
+        run: alembic upgrade head
 
       - name: Run tests
         run: PYTHONPATH=. pytest
