@@ -1,0 +1,63 @@
+name: CI
+
+# автоматические проверки поставил только на пуш в main и на любой PR
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+# я ложу версию в переменную окружения, чтобы когда добавятся еще проверки,
+# например линт, форматинг, статический анализ типов, использовать эту одну версию для всего
+env:
+  PYTHON_VERSION: "3.14"
+
+# делаю две отдельные джобы, одну на тесты вторую на билд
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    # все таки решил поднять тестовую базу, сделал github secrets для ci
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: "postgresql+psycopg://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/${{ secrets.POSTGRES_DB }}"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Alembic migrations
+        run: alembic upgrade head
+
+      - name: Run tests
+        run: PYTHONPATH=. pytest
+
+  # только проверка что билд проходит, собранный образ пропадет после того как отработает ci
+  build:
+    # идет только если тесты прошли
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t web-http-lab:${{ github.sha }} .
