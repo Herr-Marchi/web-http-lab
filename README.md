@@ -69,7 +69,6 @@ The API runs at `http://127.0.0.1:8000`. Interactive documentation is at [http:/
 ```bash
 docker compose up -d --build
 docker compose exec api alembic upgrade head
-curl http://127.0.0.1:8000/health
 ```
 
 Compose starts the API and PostgreSQL together. The database uses a named volume, so its data survives container recreation.

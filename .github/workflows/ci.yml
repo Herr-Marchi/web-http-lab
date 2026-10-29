@@ -1,0 +1,41 @@
+name: CI
+
+# автоматические проверки поставил только на пуш в main и на любой PR
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+# я ложу версию в переменную окружения, чтобы когда добавятся еще проверки,
+# например линт, форматинг, статический анализ типов, использовать эту одну версию для всего
+env:
+  PYTHON_VERSION: "3.14"
+
+# делаю две отдельные джобы, одну на тесты вторую на билд
+jobs:
+  # не подымаю постгрес тут, пока что тест только тех ендпоинтов что не зависят от базы
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        run: pytest
+
+  # только проверка что билд проходит, собранный образ пропадет после того как отработает ci
+  build:
+    # идет только если тесты прошли
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t web-http-lab:${{ github.sha }} .
